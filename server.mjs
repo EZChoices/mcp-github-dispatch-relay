@@ -4,10 +4,9 @@ import { Server as McpServer } from "@modelcontextprotocol/sdk/server/index.js";
 import { createHttpHandler } from "@modelcontextprotocol/sdk/server/http.js";
 
 const GITHUB_PAT = process.env.GITHUB_PAT;
-iif (!GITHUB_PAT) {
+if (!GITHUB_PAT) {
   console.warn("Missing GITHUB_PAT in environment");
 }
-
 
 const app = express();
 
