@@ -1,5 +1,3 @@
 {
-  "version": 2,
-  "builds": [{ "src": "server.mjs", "use": "@vercel/node" }],
-  "routes": [{ "src": "/mcp", "dest": "server.mjs" }]
+  "version": 2
 }
