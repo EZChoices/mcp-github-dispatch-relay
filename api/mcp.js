@@ -1,8 +1,14 @@
 export default async function handler(req, res) {
   // CORS headers for browser clients (Agent Builder)
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Accept, Authorization'
+  };
+
+  for (const [header, value] of Object.entries(corsHeaders)) {
+    res.setHeader(header, value);
+  }
 
   // Respond to CORS preflight
   if (req.method === 'OPTIONS') {
@@ -12,6 +18,7 @@ export default async function handler(req, res) {
 
   // For GET requests, we do not support SSE; reply with 405
   if (req.method === 'GET') {
+    res.setHeader('Allow', 'POST, OPTIONS');
     res.status(405).json({ error: 'GET not supported on this endpoint' });
     return;
   }
