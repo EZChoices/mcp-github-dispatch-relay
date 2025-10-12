@@ -41,16 +41,43 @@ export default function handler(req, res) {
     },
   };
 
+  const repositoryDispatchInputSchema =
+    spec.capabilities.tools['github.repository_dispatch'].inputSchema;
+  const repositoryDispatchOutputSchema =
+    spec.capabilities.tools['github.repository_dispatch'].outputSchema;
+
   const openapi = {
     openapi: '3.1.0',
     info: {
       title: 'MCP GitHub Dispatch Relay',
       version: '1.0.0',
     },
-    paths: {},
-    components: {
-      'x-mcp': spec,
+    paths: {
+      '/github/repository_dispatch': {
+        post: {
+          operationId: 'githubRepositoryDispatch',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: repositoryDispatchInputSchema,
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: 'Successful dispatch',
+              content: {
+                'application/json': {
+                  schema: repositoryDispatchOutputSchema,
+                },
+              },
+            },
+          },
+        },
+      },
     },
+    'x-mcp': spec,
   };
 
   res.status(200).json(openapi);
