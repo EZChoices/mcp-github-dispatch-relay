@@ -2,6 +2,8 @@ import express from "express";
 import { z } from "zod";
 import { Server as McpServer } from "@modelcontextprotocol/sdk/server/index.js";
 import { createHttpHandler } from "@modelcontextprotocol/sdk/server/http.js";
+import cors from "cors";
+
 
 const GITHUB_PAT = process.env.GITHUB_PAT;
 if (!GITHUB_PAT) {
@@ -9,6 +11,8 @@ if (!GITHUB_PAT) {
 }
 
 const app = express();
+app.use(cors());
+
 
 // MCP server and tool
 const mcp = new McpServer(
