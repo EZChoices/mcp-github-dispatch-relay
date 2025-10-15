@@ -76,23 +76,37 @@ export default async function handler(req, res) {
     }
 
     if (method === 'initialize') {
-      const result = {
-        protocolVersion: '2024-11-05',
-        capabilities: { tools: spec.capabilities.tools }
-      };
-      res.status(200).json({ jsonrpc: '2.0', id, result });
+      res.status(200).json({
+        jsonrpc: '2.0',
+        id,
+        result: {
+          protocolVersion: '2024-11-05',
+          capabilities: {
+            tools: Object.entries(spec.capabilities.tools).map(([name, tool]) => ({
+              name,
+              description: tool.description,
+              input_schema: tool.input_schema,
+              output_schema: tool.output_schema
+            }))
+          }
+        }
+      });
       return;
     }
 
     if (method === 'tools/list') {
-      const tools = Object.entries(spec.capabilities.tools).map(([name, tool]) => ({
-        name,
-        title: tool.title,
-        description: tool.description,
-        input_schema: tool.input_schema,
-        output_schema: tool.output_schema
-      }));
-      res.status(200).json({ jsonrpc: '2.0', id, result: { tools } });
+      res.status(200).json({
+        jsonrpc: '2.0',
+        id,
+        result: {
+          tools: Object.entries(spec.capabilities.tools).map(([name, tool]) => ({
+            name,
+            description: tool.description,
+            input_schema: tool.input_schema,
+            output_schema: tool.output_schema
+          }))
+        }
+      });
       return;
     }
 
