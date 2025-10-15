@@ -38,13 +38,12 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
     res.setHeader('Content-Type', 'application/json');
 
-    // --- preflight & head ---
     if (req.method === 'OPTIONS' || req.method === 'HEAD') {
       res.status(200).end();
       return;
     }
 
-    // --- GET: tool discovery ---
+    // --- GET: plain JSON discovery ---
     if (req.method === 'GET') {
       const tools = Object.entries(spec.capabilities.tools).map(([name, tool]) => ({
         name,
@@ -53,46 +52,38 @@ export default async function handler(req, res) {
         input_schema: tool.input_schema,
         output_schema: tool.output_schema
       }));
-      res.status(200).json({ tools, status: 'ok' });
+      res.status(200).json({
+        capabilities: { tools },
+        tools,
+        status: 'ok'
+      });
       return;
     }
 
-    // --- only POST left below ---
-    if (req.method !== 'POST') {
-      res.setHeader('Allow', 'GET, POST, OPTIONS, HEAD');
-      res.status(405).json({ error: 'Method not allowed' });
-      return;
-    }
-
-    // --- parse JSON-RPC body ---
+    // --- POST: JSON-RPC handshake (initialize / tools/list) ---
     let body = req.body;
     if (typeof body === 'string') {
-      try {
-        body = JSON.parse(body);
-      } catch {
+      try { body = JSON.parse(body); } catch {
         res.status(400).json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } });
         return;
       }
     }
 
-    const { id, jsonrpc, method, params } = body || {};
-    if (jsonrpc !== '2.0' || !method) {
+    const { id, method, params, jsonrpc } = body || {};
+    if (!method) {
       res.status(400).json({ jsonrpc: '2.0', id, error: { code: -32600, message: 'Invalid Request' } });
       return;
     }
 
-    // --- MCP initialize ---
     if (method === 'initialize') {
-      const requestedVersion = params?.protocolVersion || '2024-11-05';
       const result = {
-        protocolVersion: requestedVersion,
+        protocolVersion: '2024-11-05',
         capabilities: { tools: spec.capabilities.tools }
       };
       res.status(200).json({ jsonrpc: '2.0', id, result });
       return;
     }
 
-    // --- MCP tools/list ---
     if (method === 'tools/list') {
       const tools = Object.entries(spec.capabilities.tools).map(([name, tool]) => ({
         name,
