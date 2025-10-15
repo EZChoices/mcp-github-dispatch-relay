@@ -31,6 +31,25 @@ const spec = {
 };
 
 export default async function handler(req, res) {
+  // --- Handle GET (for Builder probe) ---
+  if (req.method === 'GET') {
+    const tools = Object.entries(spec.capabilities.tools).map(([name, tool]) => ({
+      name,
+      title: tool.title,
+      description: tool.description,
+      input_schema: tool.input_schema,
+      output_schema: tool.output_schema
+    }));
+
+    res.status(200).json({
+      // 👇 Builder looks for either of these keys
+      tools,
+      capabilities: { tools },
+      status: 'ok'
+    });
+    return;
+  }
+
   try {
     console.log('---- NEW REQUEST ----');
     console.log('Method:', req.method);
@@ -52,23 +71,6 @@ export default async function handler(req, res) {
 
     if (req.method === 'OPTIONS' || req.method === 'HEAD') {
       res.status(200).end();
-      return;
-    }
-
-    // --- GET: plain JSON discovery ---
-    if (req.method === 'GET') {
-      const tools = Object.entries(spec.capabilities.tools).map(([name, tool]) => ({
-        name,
-        title: tool.title,
-        description: tool.description,
-        input_schema: tool.input_schema,
-        output_schema: tool.output_schema
-      }));
-      res.status(200).json({
-        capabilities: { tools },
-        tools,
-        status: 'ok'
-      });
       return;
     }
 
