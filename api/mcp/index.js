@@ -46,6 +46,30 @@ export default async function handler(req, res) {
     return;
   }
 
+  // --- Handle plain POST probe (Builder sends JSON without "jsonrpc") ---
+  if (req.method === "POST") {
+    try {
+      const raw =
+        req.body && typeof req.body === "string"
+          ? req.body
+          : JSON.stringify(req.body || {});
+      const parsed = JSON.parse(raw);
+      if (!parsed.jsonrpc) {
+        const tools = Object.entries(spec.tools).map(([name, tool]) => ({
+          name,
+          title: tool.title,
+          description: tool.description,
+          input_schema: tool.input_schema,
+          output_schema: tool.output_schema
+        }));
+        res.status(200).json({ tools });
+        return;
+      }
+    } catch (_) {
+      /* fall through to JSON-RPC handler */
+    }
+  }
+
   try {
     console.log("---- NEW REQUEST ----");
     console.log("Method:", req.method);
