@@ -6,7 +6,7 @@ const spec = {
       'github.repository_dispatch': {
         title: 'GitHub Repository Dispatch',
         description: 'Trigger a GitHub repository_dispatch event',
-        inputSchema: {
+        input_schema: { // 👈 renamed for MCP spec compliance
           type: 'object',
           properties: {
             owner: { type: 'string' },
@@ -16,7 +16,7 @@ const spec = {
           },
           required: ['owner', 'repo', 'event_type']
         },
-        outputSchema: {
+        output_schema: { // 👈 renamed for MCP spec compliance
           type: 'object',
           properties: {
             ok: { type: 'boolean' },
@@ -32,6 +32,7 @@ const spec = {
 
 export default async function handler(req, res) {
   try {
+    // --- CORS setup ---
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
@@ -41,24 +42,27 @@ export default async function handler(req, res) {
       return;
     }
 
+    // --- Handle GET: tool discovery ---
     if (req.method === 'GET') {
       const tools = Object.entries(spec.capabilities.tools).map(([name, tool]) => ({
         name,
         title: tool.title,
         description: tool.description,
-        inputSchema: tool.inputSchema,
-        outputSchema: tool.outputSchema
+        input_schema: tool.input_schema,
+        output_schema: tool.output_schema
       }));
       res.status(200).json({ tools, status: 'ok' });
       return;
     }
 
+    // --- Handle invalid methods ---
     if (req.method !== 'POST') {
       res.setHeader('Allow', 'GET, POST, OPTIONS');
       res.status(405).json({ error: 'Method not allowed' });
       return;
     }
 
+    // --- Parse JSON-RPC body ---
     let body = req.body;
     if (typeof body === 'string') {
       try {
@@ -80,6 +84,7 @@ export default async function handler(req, res) {
       return;
     }
 
+    // --- Handle MCP initialize ---
     if (method === 'initialize') {
       const requestedVersion = params?.protocolVersion || '2024-11-05';
       const result = {
@@ -90,18 +95,20 @@ export default async function handler(req, res) {
       return;
     }
 
+    // --- Handle tool listing ---
     if (method === 'tools/list') {
       const tools = Object.entries(spec.capabilities.tools).map(([name, tool]) => ({
         name,
         title: tool.title,
         description: tool.description,
-        inputSchema: tool.inputSchema,
-        outputSchema: tool.outputSchema
+        input_schema: tool.input_schema,
+        output_schema: tool.output_schema
       }));
       res.status(200).json({ jsonrpc: '2.0', id, result: { tools } });
       return;
     }
 
+    // --- Handle tool execution ---
     if (method === 'tools/call') {
       const { tool, input } = params || {};
       if (tool !== 'github.repository_dispatch') {
@@ -142,7 +149,9 @@ export default async function handler(req, res) {
       }
     }
 
+    // --- Default case: method not found ---
     res.status(200).json({ jsonrpc: '2.0', id, error: { code: -32601, message: 'Method not found' } });
+
   } catch (err) {
     console.error('MCP relay failed:', err);
     res.status(500).json({ error: err.message });
