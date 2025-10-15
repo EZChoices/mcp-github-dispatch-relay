@@ -108,14 +108,13 @@ export default async function handler(req, res) {
         id,
         result: {
           protocolVersion: "2024-11-05",
-          capabilities: {
-            tools: Object.entries(spec.tools).map(([name, tool]) => ({
-              name,
-              description: tool.description,
-              input_schema: tool.input_schema,
-              output_schema: tool.output_schema
-            }))
-          }
+          tools: Object.entries(spec.tools).map(([name, tool]) => ({
+            name,
+            title: tool.title,
+            description: tool.description,
+            input_schema: tool.input_schema,
+            output_schema: tool.output_schema
+          }))
         }
       });
       return;
@@ -128,6 +127,7 @@ export default async function handler(req, res) {
         result: {
           tools: Object.entries(spec.tools).map(([name, tool]) => ({
             name,
+            title: tool.title,
             description: tool.description,
             input_schema: tool.input_schema,
             output_schema: tool.output_schema
