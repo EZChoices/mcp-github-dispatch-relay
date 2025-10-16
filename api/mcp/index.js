@@ -33,7 +33,6 @@ const SPEC = {
 };
 
 // Optional: force Node runtime on Vercel (avoids some Edge pitfalls with env)
-export const config = { runtime: 'nodejs' };
 
 function mcpInitializeResult() {
   return {
