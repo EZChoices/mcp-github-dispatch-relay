@@ -1,51 +1,37 @@
-export const config = {
-  runtime: "nodejs", // ensure Node runtime (Edge sometimes hides env vars)
-};
+// api/mcp/debug.js
 
-/**
- * Debug endpoint for verifying GitHub token visibility and runtime environment.
- * Accessible at: https://<your-vercel-project>.vercel.app/api/debug
- */
+export const runtime = "nodejs"; // ✅ Replaces deprecated config.runtime
+
+import { Octokit } from "@octokit/rest";
 
 export default async function handler(req, res) {
-  res.setHeader("Content-Type", "application/json");
+  console.log("🧩 MCP Debug | Incoming request body:", req.body);
 
-  const tokenPAT = process.env.GITHUB_PAT || null;
-  const tokenGITHUB = process.env.GITHUB_TOKEN || null;
+  try {
+    const { event_type, client_payload } = req.body || {};
 
-  const result = {
-    runtime: process.versions.node ? "node" : "edge",
-    envKeys: Object.keys(process.env).filter((k) => k.includes("GITHUB")),
-    has_GITHUB_PAT: !!tokenPAT,
-    has_GITHUB_TOKEN: !!tokenGITHUB,
-    token_PAT_prefix: tokenPAT ? tokenPAT.slice(0, 4) : null,
-    token_GITHUB_prefix: tokenGITHUB ? tokenGITHUB.slice(0, 4) : null,
-    github_api_status: null,
-    github_api_message: null,
-  };
+    const octokit = new Octokit({
+      auth: process.env.GITHUB_PAT,
+    });
 
-  // Optional: Ping GitHub API with whichever token exists
-  const token = tokenPAT || tokenGITHUB;
-  if (token) {
-    try {
-      const resp = await fetch("https://api.github.com/user", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-      });
-      result.github_api_status = resp.status;
-      const data = await resp.json().catch(() => ({}));
-      result.github_api_message =
-        data?.login || data?.message || "GitHub API reachable";
-    } catch (err) {
-      result.github_api_status = "fetch_failed";
-      result.github_api_message = err.message;
-    }
-  } else {
-    result.github_api_message = "No token available in environment";
+    const response = await octokit.repos.createDispatchEvent({
+      owner: "EZChoices",
+      repo: "agent-factory",
+      event_type: event_type || "run_ci",
+      client_payload: client_payload || {},
+    });
+
+    console.log("✅ Dispatch success:", response.status);
+    return res.status(200).json({
+      ok: true,
+      response: response.status,
+      message: "GitHub dispatch triggered successfully",
+    });
+  } catch (error) {
+    console.error("❌ MCP Debug Error:", error);
+    return res.status(500).json({
+      ok: false,
+      error: error.message,
+    });
   }
-
-  res.status(200).json(result);
 }
