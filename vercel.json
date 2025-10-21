@@ -4,6 +4,7 @@
     { "src": "api/**/*.js", "use": "@vercel/node@4.0.0" }
   ],
   "routes": [
+    { "src": "/api/check_env", "dest": "/api/check_env.js" },
     { "src": "/(.*)", "dest": "/api/mcp/index.js" }
   ]
 }
