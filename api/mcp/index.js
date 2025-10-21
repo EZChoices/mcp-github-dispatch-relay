@@ -174,15 +174,40 @@ export default async function handler(req, res) {
     }
 
     // ─── Unified dispatch handler ────────────────
-    if (method === "tools/call" || method === "github.repository_dispatch") {
-      const args =
-        method === "tools/call"
-          ? params?.arguments ?? params?.input ?? {}
-          : params ?? {};
-      const name =
-        method === "tools/call"
-          ? params?.name || params?.tool
-          : "github.repository_dispatch";
+    if (method === "github.repository_dispatch") {
+      try {
+        const result = await callGithubRepositoryDispatch(params);
+
+        // Always return a valid JSON-RPC envelope so MCP can continue.
+        res.status(200).json({
+          jsonrpc: "2.0",
+          id,
+          result: {
+            ok: result.ok,
+            status: result.status,
+            statusText: result.statusText,
+            message: result.ok
+              ? "Repository dispatch triggered successfully."
+              : "Dispatch call returned a non-OK status.",
+            body: result.body || "",
+          },
+        });
+      } catch (err) {
+        res.status(200).json({
+          jsonrpc: "2.0",
+          id,
+          error: {
+            code: -32000,
+            message: err?.message || String(err),
+          },
+        });
+      }
+      return;
+    }
+
+    if (method === "tools/call") {
+      const args = params?.arguments ?? params?.input ?? {};
+      const name = params?.name || params?.tool;
 
       if (name !== SPEC.tool.name) {
         res.status(200).json({
@@ -193,12 +218,31 @@ export default async function handler(req, res) {
         return;
       }
 
-      const result = await callGithubRepositoryDispatch(args);
-      res.status(result.status).json({
-        jsonrpc: "2.0",
-        id,
-        result,
-      });
+      try {
+        const result = await callGithubRepositoryDispatch(args);
+        res.status(200).json({
+          jsonrpc: "2.0",
+          id,
+          result: {
+            ok: result.ok,
+            status: result.status,
+            statusText: result.statusText,
+            message: result.ok
+              ? "Repository dispatch triggered successfully."
+              : "Dispatch call returned a non-OK status.",
+            body: result.body || "",
+          },
+        });
+      } catch (err) {
+        res.status(200).json({
+          jsonrpc: "2.0",
+          id,
+          error: {
+            code: -32000,
+            message: err?.message || String(err),
+          },
+        });
+      }
       return;
     }
 
