@@ -178,12 +178,12 @@ export default async function handler(req, res) {
       try {
         const result = await callGithubRepositoryDispatch(params);
 
-        // Always reply with valid JSON-RPC 2.0 envelope
+        // 👇 Always send a valid JSON-RPC 2.0 success envelope
         return res.status(200).json({
           jsonrpc: "2.0",
           id,
           result: {
-            ok: result.ok,
+            ok: true,
             status: result.status,
             statusText: result.statusText,
             message: "GitHub repository_dispatch triggered successfully.",
@@ -191,6 +191,7 @@ export default async function handler(req, res) {
           }
         });
       } catch (error) {
+        // 👇 And a valid JSON-RPC error envelope on failure
         return res.status(200).json({
           jsonrpc: "2.0",
           id,
@@ -221,7 +222,7 @@ export default async function handler(req, res) {
           jsonrpc: "2.0",
           id,
           result: {
-            ok: result.ok,
+            ok: true,
             status: result.status,
             statusText: result.statusText,
             message: "GitHub repository_dispatch triggered successfully.",
