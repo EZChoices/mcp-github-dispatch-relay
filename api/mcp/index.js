@@ -174,33 +174,32 @@ export default async function handler(req, res) {
     }
 
     // ─── Unified dispatch handler ────────────────
-    // ✅ Always wrap Octokit results in a JSON-RPC 2.0 envelope
     if (method === "github.repository_dispatch") {
       try {
         const result = await callGithubRepositoryDispatch(params);
 
-        res.status(200).json({
+        // Always reply with valid JSON-RPC 2.0 envelope
+        return res.status(200).json({
           jsonrpc: "2.0",
           id,
           result: {
             ok: result.ok,
             status: result.status,
             statusText: result.statusText,
-            body: result.body,
-            message: "Repository dispatch completed successfully.",
-          },
+            message: "GitHub repository_dispatch triggered successfully.",
+            body: result.body || ""
+          }
         });
-      } catch (err) {
-        res.status(200).json({
+      } catch (error) {
+        return res.status(200).json({
           jsonrpc: "2.0",
           id,
           error: {
             code: -32000,
-            message: err?.message || String(err),
-          },
+            message: error?.message || String(error)
+          }
         });
       }
-      return;
     }
 
     if (method === "tools/call") {
@@ -225,8 +224,8 @@ export default async function handler(req, res) {
             ok: result.ok,
             status: result.status,
             statusText: result.statusText,
-            body: result.body,
-            message: "Repository dispatch completed successfully.",
+            message: "GitHub repository_dispatch triggered successfully.",
+            body: result.body || ""
           },
         });
       } catch (err) {
