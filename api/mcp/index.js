@@ -32,23 +32,22 @@ const SPEC = {
   }
 };
 
-// Optional: force Node runtime on Vercel (avoids some Edge pitfalls with env)
+// ────────────────────────────────────────────────────────────────
+// Initialization helpers
+// ────────────────────────────────────────────────────────────────
 
 function mcpInitializeResult() {
   return {
     jsonrpc: '2.0',
-    // id will be filled by caller
     result: {
-      protocolVersion: '2025-06-18', // current spec revision
+      protocolVersion: '2025-06-18',
       serverInfo: {
         name: SPEC.name,
         version: SPEC.version,
         title: 'GitHub Dispatch MCP'
       },
-      // IMPORTANT: 'tools' must be an OBJECT that announces capability, not an array.
-      // You can include 'listChanged' if you plan to emit notifications later.
       capabilities: {
-        tools: {} // { listChanged: false } is fine too
+        tools: {}
       }
     }
   };
@@ -57,7 +56,6 @@ function mcpInitializeResult() {
 function mcpListToolsResult() {
   return {
     jsonrpc: '2.0',
-    // id will be filled by caller
     result: {
       tools: [
         {
@@ -65,13 +63,20 @@ function mcpListToolsResult() {
           description: SPEC.tool.description,
           inputSchema: SPEC.tool.inputSchema,
           outputSchema: SPEC.tool.outputSchema,
-          // Some clients favor annotations.title for display
-          annotations: { title: SPEC.tool.title, readOnlyHint: false, openWorldHint: true }
+          annotations: {
+            title: SPEC.tool.title,
+            readOnlyHint: false,
+            openWorldHint: true
+          }
         }
       ]
     }
   };
 }
+
+// ────────────────────────────────────────────────────────────────
+// GitHub Dispatch
+// ────────────────────────────────────────────────────────────────
 
 async function callGithubRepositoryDispatch(args) {
   const { owner, repo, event_type, client_payload } = args || {};
@@ -100,8 +105,11 @@ async function callGithubRepositoryDispatch(args) {
   };
 }
 
+// ────────────────────────────────────────────────────────────────
+// Main Handler
+// ────────────────────────────────────────────────────────────────
+
 export default async function handler(req, res) {
-  // CORS & common headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
@@ -112,15 +120,12 @@ export default async function handler(req, res) {
     return;
   }
 
-  // ---- Simple GET probe for Builder / manual checks ----
+  // ─── Simple GET probe ─────────────────────────────────────────
   if (req.method === 'GET') {
-    // Return both a plain 'tools' array (for quick human checks) and a capabilities mirror
     const tools = [{
       name: SPEC.tool.name,
       title: SPEC.tool.title,
       description: SPEC.tool.description,
-      // For GET we keep snake_case as many UI probes just display it;
-      // MCP clients will use JSON-RPC below which returns camelCase per spec.
       input_schema: SPEC.tool.inputSchema,
       output_schema: SPEC.tool.outputSchema
     }];
@@ -128,18 +133,28 @@ export default async function handler(req, res) {
     return;
   }
 
-  // ---- JSON-RPC handling ----
+  // ─── JSON-RPC Handling ─────────────────────────────────────────
   let body = req.body;
   if (typeof body === 'string') {
-    try { body = JSON.parse(body); } catch {
-      res.status(200).json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } });
+    try {
+      body = JSON.parse(body);
+    } catch {
+      res.status(200).json({
+        jsonrpc: '2.0',
+        id: null,
+        error: { code: -32700, message: 'Parse error' }
+      });
       return;
     }
   }
 
   const { id, method, params } = body || {};
   if (!method) {
-    res.status(200).json({ jsonrpc: '2.0', id, error: { code: -32600, message: 'Invalid Request' } });
+    res.status(200).json({
+      jsonrpc: '2.0',
+      id,
+      error: { code: -32600, message: 'Invalid Request' }
+    });
     return;
   }
 
@@ -159,40 +174,53 @@ export default async function handler(req, res) {
     }
 
     if (method === 'tools/call') {
-      // Accept both spec shape and your older shape for compatibility
-      // Spec: params = { name: string, arguments?: object }
-      // Older: params = { tool: string, input?: object }
       const name = params?.name || params?.tool;
       const args = params?.arguments ?? params?.input ?? {};
       if (name !== SPEC.tool.name) {
-        res.status(200).json({ jsonrpc: '2.0', id, error: { code: -32601, message: 'Tool not found' } });
+        res.status(200).json({
+          jsonrpc: '2.0',
+          id,
+          error: { code: -32601, message: 'Tool not found' }
+        });
         return;
       }
+
       const result = await callGithubRepositoryDispatch(args);
-      res.status(200).json({
+
+      // ✅ Reflect GitHub’s HTTP status back to MCP client
+      const httpStatus =
+        result.status && result.status >= 200 && result.status < 300
+          ? result.status
+          : 500;
+
+      res.status(httpStatus).json({
         jsonrpc: '2.0',
         id,
         result: {
-          // MCP spec for CallToolResult supports either text or structuredContent.
-          // We return structuredContent that matches our outputSchema.
           structuredContent: result
         }
       });
       return;
     }
 
-    // Optional: respond to ping
     if (method === 'ping') {
       res.status(200).json({ jsonrpc: '2.0', id, result: {} });
       return;
     }
 
-    res.status(200).json({ jsonrpc: '2.0', id, error: { code: -32601, message: 'Method not found' } });
-  } catch (err) {
     res.status(200).json({
       jsonrpc: '2.0',
       id,
-      error: { code: -32000, message: err?.message || String(err) }
+      error: { code: -32601, message: 'Method not found' }
+    });
+  } catch (err) {
+    res.status(500).json({
+      jsonrpc: '2.0',
+      id,
+      error: {
+        code: -32000,
+        message: err?.message || String(err)
+      }
     });
   }
 }
