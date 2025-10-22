@@ -50,8 +50,20 @@ function mcpInitializeResult() {
         name: SPEC.name,
         version: SPEC.version,
         title: "GitHub Dispatch MCP",
-      },
-      capabilities: { tools: {} },
+   capabilities: {
+        tools: {
+          [SPEC.tool.name]: {
+            description: SPEC.tool.description,
+            inputSchema: SPEC.tool.inputSchema,
+            outputSchema: SPEC.tool.outputSchema,
+            annotations: {
+              title: SPEC.tool.title,
+              readOnlyHint: false,
+              openWorldHint: true,
+            },
+          },
+        },
+      } }
     },
   };
 }
