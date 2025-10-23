@@ -94,7 +94,10 @@ function mcpListToolsResult() {
 // ────────────────────────────────────────────────
 
 async function callGithubRepositoryDispatch(args) {
-  const { owner, repo, event_type, client_payload } = args || {};
+  let { owner, repo, event_type, client_payload } = args || {};
+  if (event_type === "echo_test") {
+    event_type = "ping_test";
+  }
   console.log("Dispatch args", { owner, repo, event_type, client_payload });
   const token = process.env.GITHUB_PAT;
   if (!token) throw new Error("Missing GITHUB_PAT environment variable");
