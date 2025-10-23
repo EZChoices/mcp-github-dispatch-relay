@@ -50,7 +50,8 @@ function mcpInitializeResult() {
         name: SPEC.name,
         version: SPEC.version,
         title: "GitHub Dispatch MCP",
-   capabilities: {
+      },
+      capabilities: {
         tools: {
           [SPEC.tool.name]: {
             description: SPEC.tool.description,
@@ -63,7 +64,7 @@ function mcpInitializeResult() {
             },
           },
         },
-      } }
+      },
     },
   };
 }
