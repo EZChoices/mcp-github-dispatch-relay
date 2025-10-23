@@ -94,7 +94,11 @@ function mcpListToolsResult() {
 // ────────────────────────────────────────────────
 
 async function callGithubRepositoryDispatch(args) {
-  const { owner, repo, event_type, client_payload } = args || {};
+  let { owner, repo, event_type, client_payload } = args || {};
+  if (event_type === "echo_test") {
+    event_type = "ping_test";
+  }
+  console.log("Dispatch args", { owner, repo, event_type, client_payload });
   const token = process.env.GITHUB_PAT;
   if (!token) throw new Error("Missing GITHUB_PAT environment variable");
 
@@ -105,6 +109,7 @@ async function callGithubRepositoryDispatch(args) {
     event_type,
     client_payload: client_payload || {},
   });
+  console.log("Dispatch response", response.status, response.data);
 
   return {
     ok: response.status < 300,
@@ -204,6 +209,7 @@ export default async function handler(req, res) {
         });
       } catch (error) {
         // 👇 And a valid JSON-RPC error envelope on failure
+        console.error("Dispatch error", error);
         return res.status(200).json({
           jsonrpc: "2.0",
           id,
@@ -242,6 +248,7 @@ export default async function handler(req, res) {
           },
         });
       } catch (err) {
+        console.error("Dispatch call error", err);
         res.status(200).json({
           jsonrpc: "2.0",
           id,
