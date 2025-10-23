@@ -200,11 +200,10 @@ export default async function handler(req, res) {
           jsonrpc: "2.0",
           id,
           result: {
-            ok: true,
+            ok: result.ok,
             status: result.status,
             statusText: result.statusText,
-            message: "GitHub repository_dispatch triggered successfully.",
-            body: result.body || ""
+            body: result.body || "",
           }
         });
       } catch (error) {
@@ -240,11 +239,10 @@ export default async function handler(req, res) {
           jsonrpc: "2.0",
           id,
           result: {
-            ok: true,
+            ok: result.ok,
             status: result.status,
             statusText: result.statusText,
-            message: "GitHub repository_dispatch triggered successfully.",
-            body: result.body || ""
+            body: result.body || "",
           },
         });
       } catch (err) {
